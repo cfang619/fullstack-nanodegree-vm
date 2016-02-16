@@ -23,6 +23,7 @@ def deleteMatches():
     conn.commit()
     conn.close()
 
+
 def deletePlayers():
     """Remove all the player records from the database."""
 
@@ -35,14 +36,15 @@ def deletePlayers():
     conn.commit()
     conn.close()
 
+
 def countPlayers():
     """Returns the number of players currently registered."""
 
     conn = connect()
-    curs = conn.cursor()
+    curs = conn.cursor()    
 
     SQL = "select count(id) from Player"  # SQL to counnt ids
-    curs.execute(SQL) 
+    curs.execute(SQL)
 
     row = curs.fetchone()
     cnt = row[0]
@@ -61,9 +63,9 @@ def registerPlayer(name):
 
     conn = connect()
     curs = conn.cursor()
-
-    SQL = 'insert into Player (name) values (%s)' % ("%s")  # SQL to insert namew
-    curs.execute(SQL, (name,)) 
+    # SQL to insert name
+    SQL = 'insert into Player (name) values (%s)' % ("%s")  
+    curs.execute(SQL, (name,))
 
     conn.commit()
     conn.close()
@@ -87,17 +89,17 @@ def playerStandings():
     curs = conn.cursor()
 
     SQL = "select id, name, wins, matches from Standing"  # SQL to counnt ids
-    curs.execute(SQL) 
+    curs.execute(SQL)
 
     rows = curs.fetchall()
-    
-    ## convert tuple as speced by api
-    standings = [(row[0],row[1],row[2],row[3]) for row in rows]
+
+    # convert tuple as speced by api
+    standings = [(row[0], row[1], row[2], row[3]) for row in rows]
 
     return standings
 
 
-def reportMatch(winner, loser, tie =  None):
+def reportMatch(winner, loser, tie=None):
     """Records the outcome of a single match between two players.
 
     Args:
@@ -111,21 +113,21 @@ def reportMatch(winner, loser, tie =  None):
     if (winner == loser):
         # This is bye case since we have no match available
         SQL_bye = 'insert into Match values (%s, %s, %s)' % (
-        "%s", "%s", 'win')
+            "%s", "%s", 'win')
         curs.execute(SQL_bye, (winner, loser))
     else:
         winner_result = 'win'
         loser_result = 'loss'
 
-        if (tie is not None) and (tie == True):
+        if (tie is not None) and (tie is True):
             # if we have a tie then irregardless of winner/loser
             # we set result for both to draw
             winner_result = 'draw'
             loser_result = 'draw'
 
-        # Construct SQL statements, 
+        # Construct SQL statements,
         # NOTE! although use of interpolation is present we
-        # construct SQL statement such that user values are 
+        # construct SQL statement such that user values are
         # left to cursor.execute to handle by subbing back in
         # %s where necessary
 
@@ -134,23 +136,21 @@ def reportMatch(winner, loser, tie =  None):
         SQL_loser = 'insert into Match values (%s, %s, %s)' % (
             "%s", "%s", "%s")
 
-
-        curs.execute(SQL_winner, (winner, loser, winner_result)) 
-        curs.execute(SQL_loser, (loser, winner, loser_result)) 
+        curs.execute(SQL_winner, (winner, loser, winner_result))
+        curs.execute(SQL_loser, (loser, winner, loser_result))
 
     conn.commit()
     conn.close()
 
- 
- 
+
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
-  
+
     Assuming that there are an even number of players registered, each player
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-  
+
     Returns:
       A list of tuples, each of which contains (id1, name1, id2, name2)
         id1: the first player's unique id
@@ -162,21 +162,40 @@ def swissPairings():
     conn = connect()
     curs = conn.cursor()
 
-    SQL = "select id, name from Standing"  # SQL to counnt ids
-    curs.execute(SQL) 
+    # SQL to retrieve standings + bye info
+    STANDINGS_WITH_BYE_SQL = '''
+    SELECT Standing.id, Standing.name, Num_bye.byes
+    FROM Standing INNER JOIN Num_bye
+    ON Standing.id = Num_bye.id
+    ORDER BY Standing.wins DESC, Standing.opponent_wins DESC
+    ''' 
+    curs.execute(STANDINGS_WITH_BYE_SQL)
 
     rows = curs.fetchall()
-    
-    ## convert tuple as speced by api
-    i = 0;
-    pairs = []
-    while(i < len(rows) - 1):
-        player1 = rows[i];
-        player2 = rows[i+1]
-        pairs.append((player1[0], player1[1], player2[0], player2[1]))
-        i = i+2
 
+    # retrieve num of players and rows length
+    # standings should have same length as are standings
+    # + bye joined table
+    NUM_PLAYERS_SQL = "SELECT count(*) FROM Standing"
+    curs.execute(NUM_PLAYERS_SQL)
+
+    length = curs.fetchone()
+
+    assign_bye = False
+    if(length[0] % 2 == 1):
+        assign_bye = True
+
+    # pair and convert tuple as speced by api definition
+
+    i = 0
+    pairs = []
+    while(i < length[0] - 1):
+        if((assign_bye is True) and (rows[i][2] == 0)):
+            pairs.append((rows[i][0], rows[i][1], rows[i][0], rows[i][1]))
+            assign_bye = False
+            i = i + 1
+        else:
+            pairs.append((rows[i][0], rows[i][1], rows[i+1][0], rows[i+1][1]))
+            i = i+2
 
     return pairs
-
-

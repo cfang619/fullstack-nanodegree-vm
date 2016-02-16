@@ -28,29 +28,13 @@ CREATE TABLE Match(
 	result text
 	);	
 
--- Views
+-- Views to assist with more complicated queries
 -- Total win of each Player (id)
 DROP VIEW IF EXISTS Win CASCADE;
 CREATE VIEW Win as
 SELECT Player.id, count(Match.result) as wins
 FROM Player LEFT JOIN Match 
 ON result = 'win' and Player.id = Match.player1
-GROUP BY Player.id;
-
--- Total draw of each Player (id)
-DROP VIEW IF EXISTS Draw CASCADE;
-CREATE VIEW Draw as
-SELECT Player.id, count(Match.result) as draws
-FROM Player LEFT JOIN Match 
-ON result = 'draw' and Player.id = Match.player1
-GROUP BY Player.id;
-
--- Total loss of each Player (id)
-DROP VIEW IF EXISTS Loss CASCADE;
-CREATE VIEW Loss as
-SELECT Player.id, count(Match.result) as losses
-FROM Player LEFT JOIN Match 
-ON result = 'loss' and Player.id = Match.player1
 GROUP BY Player.id;
 
 -- Total Matches played by each player (excluding byes)
@@ -61,6 +45,14 @@ FROM Player LEFT JOIN Match
 ON Player.id = Match.player1 and Match.player1 != Match.player2
 GROuP BY Player.id;
 
+-- Total Matches played by each player (excluding byes)
+DROP VIEW IF EXISTS Num_bye;	
+CREATE VIEW Num_bye as
+SELECT Player.id, count(Match.player2) as byes
+FROM Player LEFT JOIN Match
+ON Player.id = Match.player1 and Match.player1 = Match.player2
+GROuP BY Player.id;
+
 -- Opponents of each player -- groups unique player1,player2 in match
 DROP VIEW IF EXISTS Opponent CASCADE;
 CREATE VIEW Opponent as
@@ -68,18 +60,6 @@ SELECT player1, player2
 FROM Match 
 WHERE Match.player1 != Match.player2
 GROUP BY player1,player2;
-
--- Aggregate record
-DROP VIEW IF EXISTS Record CASCADE;
-CREATE VIEW Record as
-SELECT Player.id, Win.wins, Loss.losses, Draw.draws
-FROM Player
-    LEFT JOIN Win
-        ON Player.id = Win.id
-    LEFT JOIN Loss
-        ON Player.id = Loss.id
-    LEFT JOIN Draw
-        ON Player.id = Draw.id;
 
 -- Total number of wins each opponent of a Player (id) has
 DROP VIEW IF EXISTS Opponent_Win CASCADE;
