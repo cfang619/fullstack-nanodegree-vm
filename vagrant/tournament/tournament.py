@@ -14,13 +14,39 @@ def connect():
 def deleteMatches():
     """Remove all the match records from the database."""
 
+    conn = connect()
+    curs = conn.cursor()
+
+    SQL = "delete from Match"  # DB name is Record
+    curs.execute(SQL)  # SQL to delete from db
+
+    conn.commit()
+    conn.close()
 
 def deletePlayers():
     """Remove all the player records from the database."""
 
+    conn = connect()
+    curs = conn.cursor()
+
+    SQL = "delete from Player"  # DB name is Player
+    curs.execute(SQL)  # SQL to delete from db
+
+    conn.commit()
+    conn.close()
 
 def countPlayers():
     """Returns the number of players currently registered."""
+
+    conn = connect()
+    curs = conn.cursor()
+
+    SQL = "select count(id) from Player"  # SQL to counnt ids
+    curs.execute(SQL) 
+
+    row = curs.fetchone()
+    cnt = row[0]
+    return cnt
 
 
 def registerPlayer(name):
@@ -32,6 +58,15 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
+
+    conn = connect()
+    curs = conn.cursor()
+
+    SQL = 'insert into Player (name) values (%s)' % ("%s")  # SQL to insert namew
+    curs.execute(SQL, (name,)) 
+
+    conn.commit()
+    conn.close()
 
 
 def playerStandings():
@@ -48,14 +83,64 @@ def playerStandings():
         matches: the number of matches the player has played
     """
 
+    conn = connect()
+    curs = conn.cursor()
 
-def reportMatch(winner, loser):
+    SQL = "select * from Standing"  # SQL to counnt ids
+    curs.execute(SQL) 
+
+    rows = curs.fetchall()
+    
+    ## convert tuple as speced by api
+    standings = [(row[0],row[1],row[2],row[3]) for row in rows]
+
+    return standings
+
+
+def reportMatch(winner, loser, tie =  None):
     """Records the outcome of a single match between two players.
 
     Args:
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
+      tie: (optional) if set and == True then result is a tie
     """
+
+    conn = connect()
+    curs = conn.cursor()
+    if (winner == loser):
+        # This is bye case since we have no match available
+        SQL_bye = 'insert into Match values (%s, %s, %s)' % (
+        "%s", "%s", 'win')
+        curs.execute(SQL_bye, (winner, loser))
+    else:
+        winner_result = 'win'
+        loser_result = 'loss'
+
+        if (tie is not None) and (tie == True):
+            # if we have a tie then irregardless of winner/loser
+            # we set result for both to draw
+            winner_result = 'draw'
+            loser_result = 'draw'
+
+        # Construct SQL statements, 
+        # NOTE! although use of interpolation is present we
+        # construct SQL statement such that user values are 
+        # left to cursor.execute to handle by subbing back in
+        # %s where necessary
+
+        SQL_winner = 'insert into Match values (%s, %s, %s)' % (
+            "%s", "%s", "%s")
+        SQL_loser = 'insert into Match values (%s, %s, %s)' % (
+            "%s", "%s", "%s")
+
+
+        curs.execute(SQL_winner, (winner, loser, winner_result)) 
+        curs.execute(SQL_loser, (loser, winner, loser_result)) 
+
+    conn.commit()
+    conn.close()
+
  
  
 def swissPairings():
