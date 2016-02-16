@@ -86,7 +86,7 @@ def playerStandings():
     conn = connect()
     curs = conn.cursor()
 
-    SQL = "select * from Standing"  # SQL to counnt ids
+    SQL = "select id, name, wins, matches from Standing"  # SQL to counnt ids
     curs.execute(SQL) 
 
     rows = curs.fetchall()
@@ -158,5 +158,25 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
+    conn = connect()
+    curs = conn.cursor()
+
+    SQL = "select id, name from Standing"  # SQL to counnt ids
+    curs.execute(SQL) 
+
+    rows = curs.fetchall()
+    
+    ## convert tuple as speced by api
+    i = 0;
+    pairs = []
+    while(i < len(rows) - 1):
+        player1 = rows[i];
+        player2 = rows[i+1]
+        pairs.append((player1[0], player1[1], player2[0], player2[1]))
+        i = i+2
+
+
+    return pairs
 
 
