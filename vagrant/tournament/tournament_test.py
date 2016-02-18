@@ -103,20 +103,110 @@ def testReportMatches():
             raise ValueError("After deleting matches, players should have zero wins recorded.")
     print "8. After match deletion, player standings are properly reset.\n9. Matches are properly deleted."
 
+def testRematch():
+    """
+    Test that we can correctly determine rematches and avoid them
+    """
+    deleteMatches()
+    deletePlayers()
+
+    registerPlayer("A")
+    registerPlayer("B")
+    registerPlayer("C")
+    registerPlayer("D")
+
+    standings = playerStandings()
+    [id1, id2, id3, id4] = [row[0] for row in standings]
+    # Testing if isRematch works correctly
+    if(isRematch(id1,id2)):
+        raise ValueError(
+            "No matches have been played, this matchup {p1} and {p2} should no be reported as rematch".format(p1=id1,p2=id2))
+
+    # Round 1
+    reportMatch(id1, id2)
+    reportMatch(id3, id4)
+
+    # Testing if isRematch works correctly
+    if not isRematch(id1,id2):
+        raise ValueError(
+            "We just report match between {p1} and {p2} isRematch is claiming it is not a rematch".format(p1=id1, p2=id2))
+
+    # Round 2
+    reportMatch(id1, id3)
+    reportMatch(id2, id4)
+
+    # Pairings for this hypothical round (even though we already have a winner!)
+    [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4)] = swissPairings()
+
+    expected_pairs = set([frozenset([id1,id4]),
+                          frozenset([id2,id3])])
+    actual_pairs = set([frozenset([pid1,pid2]),
+                        frozenset([pid3,pid4])])
+
+    if expected_pairs != actual_pairs:
+        raise ValueError(
+                "Re-match occured! In-correct pairings given.")
+    print "11. Re-matches are properly handled!"    
+
+def testByePairing():
+    """
+    Test that we correctly assign byes to highest ranked player without one
+    """
+    deleteMatches()
+    deletePlayers()
+
+    registerPlayer("A")
+    registerPlayer("B")
+    registerPlayer("C")
+    registerPlayer("D")
+    registerPlayer("E")
+
+    standings = playerStandings()
+    [id1, id2, id3, id4, id5] = [row[0] for row in standings]
+    # Round 1
+    # BYE
+    reportMatch(id1, id1)
+    reportMatch(id2, id3)
+    reportMatch(id4, id5)
+
+    # Round 2
+    reportMatch(id1, id4)
+    reportMatch(id5, id3)
+    # BYE
+    reportMatch(id2, id2)
+
+    # Standings in this case should be fixed to ( assuming we have ranked according to opponent wins)
+    # id1, id2, id4, id5, id3
+    # id1, id2 have byes
+    # Pairings for this hypothical round (even though we already have a winner!)
+    [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4), (pid5, pname5, pid6, pname6)] = swissPairings()
+
+    expected_pairs = set([frozenset([id1,id2]),
+                      frozenset([id5,id3]),
+                      frozenset([id4,id4])])
+    actual_pairs = set([frozenset([pid1,pid2]),
+                        frozenset([pid3,pid4]),
+                        frozenset([pid5,pid6])])
+
+    if expected_pairs != actual_pairs:
+        raise ValueError(
+                "Bye was incorrectly assigned.")
+    print "11. Byes are properly handled!"    
+
 def testPairings():
     """
     Test that pairings are generated properly both before and after match reporting.
     """
     deleteMatches()
     deletePlayers()
-    registerPlayer("Twilight Sparkle")
-    registerPlayer("Fluttershy")
-    registerPlayer("Applejack")
-    registerPlayer("Pinkie Pie")
-    registerPlayer("Rarity")
-    registerPlayer("Rainbow Dash")
-    registerPlayer("Princess Celestia")
-    registerPlayer("Princess Luna")
+    registerPlayer("A")
+    registerPlayer("B")
+    registerPlayer("C")
+    registerPlayer("D")
+    registerPlayer("E")
+    registerPlayer("F")
+    registerPlayer("G")
+    registerPlayer("H")
     standings = playerStandings()
     [id1, id2, id3, id4, id5, id6, id7, id8] = [row[0] for row in standings]
     pairings = swissPairings()
@@ -152,4 +242,6 @@ if __name__ == '__main__':
     testStandingsBeforeMatches()
     testReportMatches()
     testPairings()
+    testRematch()
+    testByePairing()
     print "Success!  All tests pass!"

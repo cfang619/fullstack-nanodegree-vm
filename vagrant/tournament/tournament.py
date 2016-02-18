@@ -113,8 +113,8 @@ def reportMatch(winner, loser, tie=None):
     if (winner == loser):
         # This is bye case since we have no match available
         SQL_bye = 'insert into Match values (%s, %s, %s)' % (
-            "%s", "%s", 'win')
-        curs.execute(SQL_bye, (winner, loser))
+            "%s", "%s", "%s")
+        curs.execute(SQL_bye, (winner, loser, "win"))
     else:
         winner_result = 'win'
         loser_result = 'loss'
@@ -173,29 +173,79 @@ def swissPairings():
 
     rows = curs.fetchall()
 
-    # retrieve num of players and rows length
-    # standings should have same length as are standings
-    # + bye joined table
-    NUM_PLAYERS_SQL = "SELECT count(*) FROM Standing"
-    curs.execute(NUM_PLAYERS_SQL)
-
-    length = curs.fetchone()
-
+    # Bit of a dilemna on whether to use len or DB call
+    # to count number of rows, player counnt should be
+    # identical here to number of rows in standings
+    # Although specs for exceed state all counnt/aggregate
+    # must use db so i shall do so
+    length = countPlayers()
     assign_bye = False
-    if(length[0] % 2 == 1):
+    if(length % 2 == 1):
         assign_bye = True
-
     # pair and convert tuple as speced by api definition
 
-    i = 0
+    
     pairs = []
-    while(i < length[0] - 1):
-        if((assign_bye is True) and (rows[i][2] == 0)):
+    while(length > 1):
+        if((assign_bye is True) and (rows[0][2] == 0)):
+            i = 0
+            while(i < length and rows[i][2] != 0):
+                i = i + 1
+            if(i == length):
+                raise ValueError(
+                    "Everyone already has a bye! Cannnot construct valid swiss pairinng")
             pairs.append((rows[i][0], rows[i][1], rows[i][0], rows[i][1]))
             assign_bye = False
-            i = i + 1
+            length = length - 1
+            del rows[0]
         else:
-            pairs.append((rows[i][0], rows[i][1], rows[i+1][0], rows[i+1][1]))
-            i = i+2
+            opponent = findClosestOpponnent(0, 1, rows, length)
+            pairs.append((rows[0][0], rows[0][1], rows[opponent][0], rows[opponent][1]))
+            length = length - 2
+            del rows[opponent]
+            del rows[0] 
 
     return pairs
+
+def isRematch(player1, player2):
+    """Returns true or false if two players have already played eachother
+
+    Args:
+        player1:  the id number of one player
+        player2:  the id of the potential opponent to check
+    Returns:
+        True or False depending on if they have played each other
+    """
+
+
+    conn = connect()
+    curs = conn.cursor()
+
+    # SQL to determie if two players have played each other
+    IS_REMATCH_SQL = "SELECT EXISTS(SELECT 1 FROM Match WHERE player1 = %s and player2 = %s)" % ("%s", "%s")
+    curs.execute(IS_REMATCH_SQL, (player1, player2))
+    result = curs.fetchone()
+
+    return result[0]
+
+def findClosestOpponnent(player1, candidate, standings_tuple, length):
+    """ Returns index of closest opponent that is not a isRematch
+
+    Args:
+        player1: the index of player in the tuple we are finding opponent for
+        candidate: the candidate index in tuple for possible opponent
+        standings_tuple: list/tuple of remaining players ordered in standings
+        length: length of standings tuple, not sure if len counts as aggregation
+    Returns:
+        Index of integer
+    """
+
+
+    # Simple recursive call that checks if this candidate is satisfactory
+    # if not we recurse down to next closest player in standings
+    if(candidate >= length):
+        return player1 + 1
+    elif not isRematch(standings_tuple[player1][0], standings_tuple[candidate][0]):
+        return candidate
+    else:
+        return findClosestOpponnent(player1, candidate + 1, standings_tuple, length)

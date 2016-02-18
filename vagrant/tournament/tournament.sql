@@ -64,7 +64,7 @@ GROUP BY player1,player2;
 -- Total number of wins each opponent of a Player (id) has
 DROP VIEW IF EXISTS Opponent_Win CASCADE;
 CREATE VIEW Opponent_Win as
-SELECT Player.id, sum(Win.wins) as opponent_wins
+SELECT Player.id, COALESCE(sum(Win.wins),0) as opponent_wins
 From Player
 	LEFT JOIN Opponent
 		ON Player.id = Opponent.player1
