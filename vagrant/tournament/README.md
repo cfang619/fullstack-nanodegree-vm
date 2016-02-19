@@ -19,6 +19,7 @@ tournament_test.py - this is a client program which will uses the functions writ
   * If not then navigate to said directory.
 2. In order to setup database execute following command to launch psql command line interface: `psql`
 3. Run `\i tournament.sql` to execute the SQL commands within that file.
+  * Note re-running this command will (attempt to) drop the database and all tables/definitions withinnn it.
 4. Run `python tournament_test.py` to execute included test client program to exercise functions in module tournament.py.
 
 ## Authors
