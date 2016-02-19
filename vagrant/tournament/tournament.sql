@@ -28,7 +28,7 @@ CREATE TABLE Match(
 	result text
 	);	
 
--- Views to assist with more complicated queries
+-- ***** View definitions *****
 -- Total win of each Player (id)
 DROP VIEW IF EXISTS Win CASCADE;
 CREATE VIEW Win as
@@ -84,24 +84,3 @@ FROM Player
 	LEFT JOIN Opponent_Win
 		ON Player.id = Opponent_Win.id
 ORDER BY Win.wins DESC, Opponent_Win.opponent_wins DESC;
-
-insert into Player (name) values ('Tina');
-insert into Player (name) values ('Lujia');
-insert into Player (name) values ('Mike');
-insert into Player (name) values ('Anthony');
-insert into Player (name) values ('Alyssa');
-
-insert into Match values (1,2,'win');
-insert into Match values (1,2,'win');
-insert into Match values (2,1,'loss');
-insert into Match values (2,1,'loss');
-insert into Match values (1,1,'win');
-insert into Match values (2,3,'draw');
-insert into Match values (3,2,'draw');
-insert into Match values (3,4,'win');
-insert into Match values (3,5,'win');
-insert into Match values (3,3,'win');
-insert into Match values (4,3,'loss');
-insert into Match values (5,3,'loss');
-insert into Match values (4,5,'loss');
-insert into Match values (5,4,'win');
