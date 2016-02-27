@@ -51,6 +51,8 @@ def View(env, resp):
     '''
     # get posts from database
     posts = forumdb.GetAllPosts()
+
+    print posts
     # send results
     headers = [('Content-type', 'text/html')]
     resp('200 OK', headers)
